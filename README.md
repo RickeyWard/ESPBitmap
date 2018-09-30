@@ -52,7 +52,7 @@ bitmap.printResult(/*BITMAP_RESULT_t*/ res);
 
 if(res == BITMAP_SUCCESS)
 {
-    for(int y = 0; y < bitmap.getHeight(); x++)
+    for(int y = 0; y < bitmap.getHeight(); y++)
         for(int x = 0; x < bitmap.getWidth(); x++)
         {
             PIXEL_t pix = bitmap.getPixel(x, y);
