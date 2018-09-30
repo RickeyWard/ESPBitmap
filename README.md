@@ -17,8 +17,11 @@ ESPBitmap bitmap;
 //or
 ESPBitmap16 bitmap;
 
-//note that as long as the bitmap object is in scope. It will hold onto whatever data was loaded. It is not recommended to use the same object over and over, but instead keep in the smallest scope needed to free the memory afterward.
-//that being said, you can keep it around to redraw it later. memory usage is resonable, but still. Bytes are bytes, and bitmaps are typically uncompressed.
+//note that as long as the bitmap object is in scope. It will hold onto whatever data was loaded.
+//It is not recommended to use the same object over and over,
+//but instead keep in the smallest scope needed to free the memory afterward.
+//that being said, you can keep it around to redraw it later. memory usage is resonable, but still.
+//Bytes are bytes, and bitmaps are typically uncompressed.
 //though palettized bitmaps such as 16 color 4bpp are pretty resonable on an esp8266.
 
 //if you have a byte array that contains all the file bytes of an image (unsigned char or uint8_t) you can proccess the file data using 
@@ -49,12 +52,13 @@ bitmap.printResult(/*BITMAP_RESULT_t*/ res);
 
 if(res == BITMAP_SUCCESS)
 {
-    for(int x = 0; x < bitmap.getWidth(); x++)
-    {
-        PIXEL_t pix = bitmap.getPixel(x, y);
-        //Do something with Pixel
-        Serial.printf("[x:%d y:%d {%d,%d,%d}]", x, y, pix.r, pix.g, pix.b);
-    }
+    for(int y = 0; y < bitmap.getHeight(); x++)
+        for(int x = 0; x < bitmap.getWidth(); x++)
+        {
+            PIXEL_t pix = bitmap.getPixel(x, y);
+            //Do something with Pixel
+            Serial.printf("[x:%d y:%d {%d,%d,%d}]", x, y, pix.r, pix.g, pix.b);
+        }
 }
 
 ```
