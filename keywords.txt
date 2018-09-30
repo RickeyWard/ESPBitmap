@@ -1,0 +1,39 @@
+#######################################
+# Syntax Coloring Map For ESPBitmap
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+ESPBitmap   KEYWORD1
+ESPBitmap16 KEYWORD1
+PIXEL_t KEYWORD1
+BITMAP_RESULT_t KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+getPixel    KEYWORD2
+DecodeFileBuffer    KEYWORD2
+fetchImageFromUrl   KEYWORD2
+getFromStream   KEYWORD2
+
+#######################################
+# Instances (KEYWORD2)
+#######################################
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+BITMAP_SUCCESS  LITERAL1
+BITMAP_ERROR_UNSUPPORTED_COMPRESSION    LITERAL1
+BITMAP_ERROR_TOO_SHORT  LITERAL1
+BITMAP_ERROR_INVALID_FHEADER    LITERAL1
+BITMAP_ERROR_INVALID_IHEADER    LITERAL1
+BITMAP_ERROR_UNSUPPORTED_BITDEPTH   LITERAL1
+BITMAP_ERROR_OUT_OF_MEMORY  LITERAL1
+BITMAP_ERROR_FETCH_FAILED   LITERAL1
