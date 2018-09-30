@@ -67,6 +67,14 @@ if(res == BITMAP_SUCCESS)
 * Add true ESP32 support (haven't looked into what it takes, just know that it doesn't fully work. The base full buffer proccessing will work, but no stream support)
 * extend pure Arduino support (currently works for full image buffers only i.e. no stream support for non ESP8266)
 * Support proccessing bitmap stream as it's available without needing to store entire image before showing pixels (will be done will callbacks)
+* Create more examples that show all the different ways to use the lib
+
+## Notes
+* Why isn't native 16bpp decoding supported? Simple, few software packages allow you to save in this format directly. It's part of the spec, but it's rarely used and out of the 6 image editors I had installed I wasn't able to make one. So It would bloat the libary.
+* the 16bit version of the ESPBitmap class, `ESPBitmap16` is best for conserving ram while still supporting many colors.
+    * 1, 4, 16 bpp: converts palette colors from bgra to rbg565. Addressing data is unaltered.
+    * 24 bpp: converts 3 byte (4 byte alligned) raw data into rgb565 unpadded.
+* can I use this libary with an SD card or SPIFFS? YES! check out the `getFromStream` function. anything that inherits from an ESPCore stream that exposes the `Stream` functions to you can just be passed in.
 
 ### MIT License
 >Permission is hereby granted, free of charge, to any person
