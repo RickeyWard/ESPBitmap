@@ -165,11 +165,33 @@ BITMAP_RESULT_t ESPBitmap16::DecodeFileBuffer(uint8_t *wholeFileBytes, int32_t l
     if(data_length == 0)
       data_length = bitmapHeader.filesize - dataOffset;
 
-    colorData = new uint8_t[data_length];
-    if(colorData == 0)
-      BITMAP_ERROR_OUT_OF_MEMORY;
+    //if we have a 24bpp image, let's pre-proccess it and store it as uint16_t
+    //here I had I great debate, use unused pointer palette of uint16_t... that's what i need.
+    //or create a colorData16 for clearity?
+    //I just can't pass up this fortuidtous situtation to maximize memory usage
 
-    memcpy(colorData, wholeFileBytes + dataOffset, data_length);
+    if(bitsPerPixel == 24) {
+      palette = new uint16_t[width * height];
+      if(palette == 0)
+        return BITMAP_ERROR_OUT_OF_MEMORY;
+
+      size_t ScanlineWidth = 4 * ((int)( ((width * 24 /*<--bitsPerPixel*/) + 31) / 32));
+      int colorDataCounter = 0;
+      for(int y = 0; y < height; y++)
+        for(int x = 0; x < width; x++){
+          int offset = dataOffset + (x * 3 + ScanlineWidth * y);
+          palette[colorDataCounter++] = ESPBitmap16::Color(wholeFileBytes[offset + 2],
+                                                           wholeFileBytes[offset + 1],
+                                                           wholeFileBytes[offset]);
+        }
+    }
+    else{
+      colorData = new uint8_t[data_length];
+      if(colorData == 0)
+        BITMAP_ERROR_OUT_OF_MEMORY;
+
+      memcpy(colorData, wholeFileBytes + dataOffset, data_length);
+    }
 
     //now we have all the data loaded in colorData and the palette loaded if needed.
     return BITMAP_SUCCESS;
@@ -294,11 +316,24 @@ BITMAP_RESULT_t ESPBitmap16::getFromStream(Stream* stream,int len, int timeoutMs
             data_length = bitmapInfo.dataSize;
             if(data_length == 0)
               data_length = bitmapHeader.filesize - dataOffset;
-            
-            colorData = new uint8_t[data_length];
-            if(colorData == 0)
-              return BITMAP_ERROR_OUT_OF_MEMORY;
-          }
+
+            //if we have a 24bpp image, let's pre-proccess it and store it as uint16_t
+            //here I had I great debate, use unused pointer palette of uint16_t... that's what i need.
+            //or create a colorData16 for clearity?
+            //I just can't pass up this fortuidtous situtation to maximize memory usage
+
+            if(bitsPerPixel == 24) {
+              palette = new uint16_t[width * height];
+              if(palette == 0)
+                return BITMAP_ERROR_OUT_OF_MEMORY;
+            }
+            else{
+              colorData = new uint8_t[data_length];
+              if(colorData == 0)
+                return BITMAP_ERROR_OUT_OF_MEMORY;
+            }
+
+          }//end finished info header
         }
         //make sure if we have any useless > 40 bytes info header, that we throw it away.
         else if(readOffset < bitmapInfo.headerSize + sizeof(BITMAP_FILE_HEADER_t)){
@@ -345,10 +380,50 @@ BITMAP_RESULT_t ESPBitmap16::getFromStream(Stream* stream,int len, int timeoutMs
         //Finally, we actually load the colorData
         else if(readOffset >= dataOffset){
           DEBUG_FINE_PRINTLN(F("IN READ DATA"));
-          size_t DataReadSoFar = (readOffset - dataOffset);
-          size_t DataRemaining = (data_length - DataReadSoFar);
-          c = stream->readBytes(colorData + DataReadSoFar, size > DataRemaining ? DataRemaining : size);
-          readOffset += c;
+
+          if(bitsPerPixel == 24){
+            DEBUG_PRINTLN(F("24->16 bit downsampling...."));
+            size_t availSize = size;
+            //make sure an entire scanline is available in the buffer.
+            size_t ScanlineWidth = 4 * ((int)( ((width * 24 /*<--bitsPerPixel*/) + 31) / 32));
+            while(availSize >= ScanlineWidth && colorsLoaded < (width * height)){
+              int currentScanlineOffset = ScanlineWidth;
+              //while there are 3 bytes to read on this line there must be a color left to read
+              while(currentScanlineOffset >= 3){
+                  PIXEL_t nPix;
+                  nPix.b = (uint8_t)stream->read();
+                  nPix.g = (uint8_t)stream->read();
+                  nPix.r = (uint8_t)stream->read();
+                  palette[colorsLoaded++] = (uint16_t)ESPBitmap16::Color(
+                    nPix.r,
+                    nPix.g,
+                    nPix.b);
+                  currentScanlineOffset -= 3;
+                  availSize -= 3;
+                  c+=3;
+                  readOffset+=3;
+              }
+              //once here, we have finished a scanline. any remaining bytes are padding.
+              while(currentScanlineOffset--){
+                uint8_t theVoid = (uint8_t)stream->read();
+                //padding is always 0, so if we read something not zero here, that's an error.
+                DEBUG_FINE_PRINT(F("ERROR DISCARDING PADDING... NO ZERO BYTE READ LINE "));
+                DEBUG_FINE_PRINTLN(__LINE__);
+                availSize--;
+                c++;
+                readOffset++;
+              }
+              DEBUG_FINE_PRINT(F("Scanline converted | ")); 
+            }
+            DEBUG_FINE_PRINTLN();
+          }
+          else {
+            size_t DataReadSoFar = (readOffset - dataOffset);
+            size_t DataRemaining = (data_length - DataReadSoFar);
+            c = stream->readBytes(colorData + DataReadSoFar, size > DataRemaining ? DataRemaining : size);
+            readOffset += c;
+          }
+
         }
 
         if (len > 0) {
@@ -375,7 +450,8 @@ BITMAP_RESULT_t ESPBitmap16::getFromStream(Stream* stream,int len, int timeoutMs
 uint16_t ESPBitmap16::getPixel(int x, int y){
 
     //if the color's array hasn't been initialized, then this is an empty image object
-    if(colorData == 0 ) return ERROR_COLOR;
+    //for 24 bit we've chopped it down and stored it in the palette.
+    if(colorData == 0 && palette == 0) return ERROR_COLOR;
 
     #ifndef FAST_AND_LOOSE
     //bounds checking, this is a lot of unneccesary overhead,
@@ -419,19 +495,8 @@ uint16_t ESPBitmap16::getPixel(int x, int y){
         return palette[(colorData[ScanlineWidth * y + x])];
         break;
       case 24:
-        {
-          PIXEL_t pix;
-          int offset = x * 3 + ScanlineWidth * y;
-          pix.b = colorData[offset];
-          pix.g = colorData[offset + 1];
-          pix.r = colorData[offset + 2];
-          pix.a = 0;
-          return ESPBitmap16::Color(pix.r, pix.g, pix.b);
-          return ESPBitmap16::Color(
-            colorData[offset + 2], //r
-            colorData[offset + 1], //g
-            colorData[offset + 0]);//b
-        }
+        //24 bit has been preconverted into 16bit and stored all in the palatte, with no scanline padding.
+        return palette[width * y + x];
         break;
       default:
         return ERROR_COLOR; break;

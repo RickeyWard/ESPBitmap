@@ -66,7 +66,6 @@ if(res == BITMAP_SUCCESS)
 ## TODOs
 * Add true ESP32 support (haven't looked into what it takes, just know that it doesn't fully work. The base full buffer proccessing will work, but no stream support)
 * extend pure Arduino support (currently works for full image buffers only i.e. no stream support for non ESP8266)
-* 16bit mode should modify and store pixel data in ram with 16 bits instead of 24 as it does for palette colors.
 * Support proccessing bitmap stream as it's available without needing to store entire image before showing pixels (will be done will callbacks)
 
 ### MIT License
