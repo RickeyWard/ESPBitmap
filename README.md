@@ -8,9 +8,9 @@ The emphasis of this library is ease of use, and reasonable tradeoffs between wh
 ## Basic Usage
 ```cpp
 //include standard
-#include <EspBitmap.h>
+#include <ESPBitmap.h>
 //or 16bit version
-#include <EspBitmap16.h>
+#include <ESPBitmap16.h>
 
 //create an instance of an image
 ESPBitmap bitmap;
